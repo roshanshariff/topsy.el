@@ -105,13 +105,18 @@ Return non-nil if the minor mode is enabled."
 ;;;; Functions
 
 (defun topsy--beginning-of-defun ()
-  "Return the line moved to by `beginning-of-defun'."
+  "Return the first line of a partially visible defun.
+The beginning of the defun is identified by `beginning-of-defun',
+with buffer narrowing ignored."
   (when (> (window-start) 1)
     (save-excursion
-      (goto-char (window-start))
-      (beginning-of-defun)
-      (font-lock-ensure (point) (point-at-eol))
-      (buffer-substring (point) (point-at-eol)))))
+      (save-restriction
+        (widen)
+        (goto-char (window-start))
+        (let ((bod (ignore-errors (beginning-of-defun) (point)))
+              (eol (line-end-position)))
+          (font-lock-ensure bod eol)
+          (buffer-substring bod eol))))))
 
 (defun topsy--magit-section ()
   "Return the header line in a `magit-section-mode' buffer."
