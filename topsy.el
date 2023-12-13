@@ -80,6 +80,11 @@ nil key defines the default function."
   :type '(choice (const :tag "Show previous line" t)
                  (const :tag "Leave header blank" nil)))
 
+(defface topsy-highlight '((t :weight bold :underline t))
+  "Face for sticky header.
+This face will be used only when the function defined by
+`topsy-mode-functions' returns a string.")
+
 ;;;; Commands
 
 ;;;###autoload
@@ -111,7 +116,9 @@ Return non-nil if the minor mode is enabled."
 
 (defun topsy--header-string ()
   "Return string found by `topsy-fn' or line above window start."
-  (or (and topsy-fn (funcall topsy-fn))
+  (or (when-let ((header (and topsy-fn (funcall topsy-fn))))
+        (prog1 header
+          (add-face-text-property 0 (length header) 'topsy-highlight t header)))
       (when topsy-previous-line-fallback
         ;; Return the line preceding window-start
         (save-excursion
