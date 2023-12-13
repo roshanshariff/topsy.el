@@ -45,7 +45,7 @@
 
 (defconst topsy-header-line-format
   '(:eval (list (propertize " " 'display '((space :align-to 0)))
-                (funcall topsy-fn)))
+                (topsy--header-string)))
   "The header line format used by `topsy-mode'.")
 (put 'topsy-header-line-format 'risky-local-variable t)
 
@@ -79,6 +79,11 @@ nil key defines the default function."
   :type '(alist :key-type symbol
                 :value-type function))
 
+(defcustom topsy-previous-line-fallback t
+  "Show line above the window start instead of blank header."
+  :type '(choice (const :tag "Show previous line" t)
+                 (const :tag "Leave header blank" nil)))
+
 (defface topsy-header-line '((t :inherit default))
   "Topsy header line face.
 
@@ -87,6 +92,11 @@ is often not appropriate for a sticky header.  To use the
 `header-line' face instead, remove the `:inherit' attribute:
 
 \(custom-set-faces \\='(topsy-header-line ((t :inherit nil))))")
+
+(defface topsy-highlight '((t :weight bold :underline t))
+  "Face for sticky header.
+This face will be used only when the function defined by
+`topsy-mode-functions' returns a string.")
 
 ;;;; Commands
 
@@ -119,6 +129,22 @@ Return non-nil if the minor mode is enabled."
     (face-remap-remove-relative topsy--face-remap)))
 
 ;;;; Functions
+
+(defun topsy--header-string ()
+  "Return string found by `topsy-fn' or line above window start."
+  (or (when-let ((header (and topsy-fn (funcall topsy-fn))))
+        (prog1 header
+          (add-face-text-property 0 (length header) 'topsy-highlight t header)))
+      (when topsy-previous-line-fallback
+        ;; Return the line preceding window-start
+        (save-excursion
+          (goto-char (window-start))
+          (vertical-motion -1)
+          (let ((bol (point))
+                (eol (1- (window-start))))
+            (when (< bol eol)
+              (font-lock-ensure bol eol)
+              (buffer-substring bol eol)))))))
 
 (defun topsy--beginning-of-defun ()
   "Return the first line of a partially visible defun.
