@@ -106,15 +106,20 @@ Return non-nil if the minor mode is enabled."
 
 (defun topsy--beginning-of-defun ()
   "Return the first line of a partially visible defun.
-The beginning of the defun is identified by `beginning-of-defun',
-with buffer narrowing ignored."
-  (when (> (window-start) 1)
-    (save-excursion
-      (save-restriction
-        (widen)
-        (goto-char (window-start))
-        (let ((bod (ignore-errors (beginning-of-defun) (point)))
-              (eol (line-end-position)))
+The beginning and end of the defun are identified by
+`beginning-of-defun' and `end-of-defun', respectively, with
+buffer narrowing ignored.
+
+Return nil if no defun is partially visible."
+  (save-excursion
+    (save-restriction
+      (widen)
+      (goto-char (window-start))
+      (let ((bod (ignore-errors (beginning-of-defun) (point)))
+            (eol (line-end-position))
+            (eod (ignore-errors (end-of-defun) (point))))
+        (when (and bod (< bod (window-start))
+                   (or (not eod) (>= eod (window-start))))
           (font-lock-ensure bod eol)
           (buffer-substring bod eol))))))
 
